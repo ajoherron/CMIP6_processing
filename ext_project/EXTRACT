@@ -1,0 +1,84 @@
+#!/bin/bash
+
+##########################
+### USER-SET VARIABLES ###
+##########################
+
+# Run / variants
+prefix="E213S0"
+suffix="F40oQ40"
+variants=("r" "s" "t")
+
+# Time range
+year_start="1850"
+year_end="2014"
+
+############################
+### Automatic extraction ###
+############################
+
+# Set script type
+script_type="extraction"
+
+# Record the start time
+start_time=$(date "+%s")
+
+# Determine extraction directory
+current_directory=$(pwd)
+ext_dir=$(echo "$current_directory" | awk -F'/' '{print $NF}')
+
+# Add extraction directory to PATH
+export PATH="/discover/nobackup/aherron1/$ext_dir:$PATH"
+
+# Set run type extract script based on the prefix
+case "$prefix" in
+E213*) run_type_extract_script="cmip6_nint_extract.ksh" ;;
+E06*) run_type_extract_script="cmip6_nint102_extract.ksh" ;;
+E212*) run_type_extract_script="cmip6_tcadiOma_extract.ksh" ;;
+E07*) run_type_extract_script="cmip6_tcadiOma102_extract.ksh" ;;
+E214*) run_type_extract_script="cmip6_tcadiMatrix_extract.ksh" ;;
+*)
+    echo "Error: Unknown prefix. No extraction script found."
+    exit 1
+    ;;
+esac
+
+# Set master_script based on ext_dir
+master_script=""
+case "$ext_dir" in
+ext_project) master_script="master_cmip6archive_extract.ksh" ;;
+ext_dirac) master_script="master_ut_extract.ksh" ;;
+*)
+    echo "Error: Unknown ext_dir. No master_script found."
+    exit 1
+    ;;
+esac
+
+# Initialize empty string to store CMOR commands
+command_array=()
+
+# Loop through each variant
+for variant in "${variants[@]}"; do
+
+    # Set run name for each variant
+    run="${prefix}${variant}${suffix}"
+
+    # Set command to input variables
+    extraction_command="./auto_doall.sh $master_script $run $year_start $year_end $ext_dir $run_type_extract_script"
+
+    # Append the extraction command to the string
+    command_array+=("$extraction_command")
+
+done
+
+# Iterate through the array and execute each command
+details=""
+for command in "${command_array[@]}"; do
+    echo "Running command: $command"
+    eval "$command"
+    details+="$command\n"
+done
+echo -e "\nExtraction commands executed successfully."
+
+# Send automatic email
+python /discover/nobackup/aherron1/automation/send_email.py "$start_time" "$details" "$script_type"

@@ -1,0 +1,51 @@
+#!/bin/bash
+
+##########################
+### USER-SET VARIABLES ###
+##########################
+
+# Run
+run="E213S0fF40oQ40"
+
+# Time range
+# Total ramge: 1850-2014
+# Done/processing: 1850-1899
+# To-do: 1900-1939, 1940-1979, 1980-2014
+year_start="1940"
+year_end="1979"
+
+############################
+### Automatic extraction ###
+############################
+
+# Record the start time
+start_time=$(date "+%s")
+
+# Set script type
+script_type="subdaily extraction"
+
+# Determine extraction directory
+current_directory=$(pwd)
+ext_dir=$(echo "$current_directory" | awk -F'/' '{print $NF}')
+
+# Add extraction directory to PATH
+export PATH="/discover/nobackup/aherron1/$ext_dir:$PATH"
+
+# Set master script based on ext_dir
+master_script=""
+case "$ext_dir" in
+ext_project) master_script="master_cmip6archive_subdd_extract.ksh" ;;
+ext_dirac) master_script="master_subdd_extract.ksh" ;;
+*)
+    echo "Error: Unknown ext_dir. No master_script found."
+    exit 1
+    ;;
+esac
+
+# Extraction command
+extraction_command="./auto_doall.sh $master_script $run $year_start $year_end $ext_dir cmip6_hf_extract.ksh"
+echo -e "\nRunning $script_type command:\n$extraction_command\n"
+eval "$extraction_command"
+
+# Send automatic email
+python /discover/nobackup/aherron1/automation/send_email.py "$start_time" "$extraction_command" "$script_type"

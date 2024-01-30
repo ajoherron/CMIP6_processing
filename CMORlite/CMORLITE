@@ -1,0 +1,63 @@
+#!/bin/bash
+
+##########################
+### USER-SET VARIABLES ###
+##########################
+
+run_number=E25TomaOCNf10aF40
+time_scale=acc # acc for monthly and subdd for daily/subdaily
+version=E25    # This field is only necessary when using the old archive. E.g. E213 for NINT. it is the "X" in /archive/u/rruedy/GISS/X/.
+file_type=aij  # scaleacc argument (e.g. "all" "aij" "oijl" etc) If you want to cherry pick options, use a comma and no space (e.g. aij,oijl). DO NOT use all or a list when running the CMOR command. This must be done one option at a time (e.g. do "aij" first and then "oijl")
+table=CMIP6_Lmon_IRRMIP.json
+year_1=1850
+year_2=2014
+
+###################################
+### Automatic Extraction / CMOR ###
+###################################
+
+# Only edit if not doing monthly
+instructions=/discover/nobackup/aherron1/exptid/$run_number.json
+example_file="/discover/nobackup/aherron1/CMORlite/CMOR/getfiles/files/APR${year_1}.${file_type}${run_number}.nc"
+date_1="${year_1}01010000"
+date_2="${year_2}12310000"
+p="$(((year_2 - year_1 + 1) * 12))"
+zf1="."
+zf2="."
+
+# Record the start time
+start_time=$(date "+%s")
+
+# Set script type
+script_type="CMORlite extraction/CMOR"
+
+# Start message / specifications
+echo "-----------------------------------------------"
+echo "-              Start run_cmor                 -"
+echo "-----------------------------------------------"
+echo -e "\nSpecifications:\n${time_scale}${run_number}\n${file_type}\n${table}\n${year_1} ${year_2}\n${example_file}"
+
+# Export LD Library Path
+export LD_LIBRARY_PATH="/usr/local/other/json/intel/20.0.0.166/jsonfortran-intel-8.2.5/lib:$LD_LIBRARY_PATH"
+
+# Set paths/files (do not edit!)
+main_scale=/discover/nobackup/aherron1/CMORlite/CMOR/getfiles/get_and_scale_currentruns
+main_cmor=/discover/nobackup/aherron1/CMORlite/CMOR/modelE_to_CMOR
+eq=diag_eqns.txt
+
+# NOTE: Can run extraction and CMOR steps individually
+# Run extraction (using get_and_scale)
+echo "Retrieving files from archive..."
+cd /discover/nobackup/aherron1/CMORlite/CMOR/getfiles || exit
+$main_scale $time_scale $run_number $version $file_type $year_1 $year_2
+
+# Run CMOR
+echo "CMORizing intermediate files..."
+cd /discover/nobackup/aherron1/CMORlite/CMOR || exit
+$main_cmor $instructions $eq $table $example_file $date_1 $date_2 $p $zf1 $zf2
+
+# Reminder to delete intermediate files
+echo -e "Check CMORized files.\nIf all looks good, scratch intermediate files in /discover/nobackup/aherron1/CMORlite/CMOR/getfiles/files (After running CMOR, of course!)"
+
+# Send automatic email
+python /discover/nobackup/aherron1/automation/send_email.py "$start_time" "$run_number" "$script_type"

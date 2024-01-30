@@ -1,0 +1,36 @@
+#!/bin/bash
+
+##########################
+### User-set variables ###
+##########################
+
+# Run information
+run=mkE3trn698c
+time_scale=monacc #monacc -> monthly, subdd -> subdaily
+
+# Start / end years
+year_1=1850
+year_2=1850
+
+# Set path
+master_script=/discover/nobackup/aherron1/e3/4alex/doit_cmor_1yr
+run_info_file=runs_info698_test.txt # Instructions file equivalent
+
+###################################
+### Automatic EXTRACTION / CMOR ###
+###################################
+
+# Record the start time
+start_time=$(date "+%s")
+
+# Set constants
+run_info=/discover/nobackup/aherron1/e3/4alex/runs_info_files/${run_info_file}
+remap_file=/discover/nobackup/aherron1/e3/4alex/remap_C90_288x180.nc
+#REMAP=/discover/nobackup/mkelley5/remap_files/remap_C90_288x180.nc # Previously used file
+
+# Run command
+command="$master_script $run $time_scale $year_1 $year_2 $run_info $remap_file"
+$command
+
+# Send email notification
+python /discover/nobackup/aherron1/automation/send_email.py "$start_time" "$command" "E3 extraction / CMOR processing"

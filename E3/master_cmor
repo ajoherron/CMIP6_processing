@@ -1,0 +1,46 @@
+#!/usr/local/bin/bash
+
+# Written to process one year of data at a time (inclusive of both years)
+# Output files are in 1-year chunks.
+# Ex: ./doit_cmor_1year mkE3trn698b2 monacc 1980 1981
+
+run=$1
+time_scale=$2 # Either monacc or subdd
+year_1=$3
+year_2=$4
+run_info=$5
+remap_file=$6
+#remap_file=/discover/nobackup/mkelley5/remap_files/remap_C90_288x180.nc
+
+inpath=/archive/u/mkelley5/${run}/${time_scale}
+
+if [[ ${time_scale} = "monacc" ]]; then time_scale="acc"; fi
+
+year=$((year_1 - 1))
+while [[ $year -lt $year_2 ]]; do
+    year=$((year + 1))
+
+    # Build up the list of input files and dmget them
+    input_files=''
+    input_file_paths=''
+    for month in JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC; do
+        in_file=${month}${year}.${time_scale}${run}.nc
+        in_file_path=${inpath}/${in_file}
+
+        # Not working
+        #dmget $in_file_path &
+
+        input_files=${input_files}" "${in_file}
+        input_file_paths=${input_file_paths}" "${in_file_path}
+    done
+
+    # Copy files from archive to local directory
+    cp "$input_file_paths" .
+
+    # Apply scaleacc to the 1-year chunk
+    "/home/mkelley5/bin/scaleacc_cmor" "ALL${year}.${time_scale}${run}.nc" "cmorall" "${run_info}" "${remap_file}"
+
+    # Clean up
+    rm -f "$input_files"
+
+done
