@@ -8,8 +8,8 @@
 # Highest compression: 9 (slowest)
 compression_level="1"
 
-# Input a specific r*i*p*f* or "all" for all files
-run="r6i1p1f2"
+# Input specific r*i*p*f* or "all" for all files
+runs=("r8i1p3f1" "r9i1p3f1")
 
 #############################
 ### Automatic Compression ###
@@ -22,35 +22,40 @@ output_file="compression_progress.txt"
 script_type="compression"
 
 # Clear progress file without removing
-true >"$output_file"
+> "$output_file"
 
 # Record the start time
 start_time=$(date "+%s")
 
-echo "==========COMPRESSING OUTPUT TO LEVEL $compression_level ==========" >>"$output_file"
+# Loop through each run
+for run in "${runs[@]}"; do
 
-# Compress all files in CMIP6 directory if run="all"
-if [ "$run" = "all" ]; then
-    path="/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/*/*/*/*/*/*/*/*/*/*nc"
-# Otherwise, compress a specific run
-else
-    path="/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/*/NASA-GISS/*/*/${run}/*/*/*/*/*nc"
-fi
+    echo "==========COMPRESSING $run TO LEVEL $compression_level ==========" >> "$output_file"
 
-# Use an array to store file paths
-files=("$path")
+    # Define path based on run parameter
+    if [ "$run" = "all" ]; then
+        path="/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/*/*/*/*/*/*/*/*/*/*nc"
+    else
+        path="/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/*/NASA-GISS/*/*/${run}/*/*/*/*/*nc"
+    fi
 
-# Loop through each file
-for file in "${files[@]}"; do
-    # Print message for each file
-    echo "[$(date +"%Y-%m-%d %H:%M:%S")] Compressing: ${file}" >>"$output_file"
+    # Use an array to store file paths
+    files=($path)
 
-    # Uncomment to compress each file with input compression level, with error handling
-    ncks -4 -L $compression_level -h -O "$file" "$file" >>"$output_file" 2>&1 || echo "Error compressing: $file" >>"$output_file"
+    # Loop through each file
+    for file in "${files[@]}"; do
+        # Print message for each file
+        echo "[$(date +"%Y-%m-%d %H:%M:%S")] Compressing: ${file}" >> "$output_file"
+
+        # Uncomment to compress each file with input compression level, with error handling
+        ncks -4 -L "$compression_level" -h -O "$file" "$file" >> "$output_file" 2>&1 || echo "Error compressing: $file" >> "$output_file"
+    done
+
+    echo "==========FINISHED COMPRESSING $run TO LEVEL $compression_level==========" >> "$output_file"
+
 done
 
-echo "==========FINISHED COMPRESSING CMOR OUTPUT==========" >>"$output_file"
 
 # Send email
-details="Compressing run: $run to compression level: $compression_level"
+details="Compressing: ${runs[@]} to compression level: $compression_level"
 python /discover/nobackup/aherron1/automation/send_email.py "$start_time" "$details" "$script_type"
