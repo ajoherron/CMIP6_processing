@@ -5,22 +5,22 @@
 ##########################
 
 # Run
-run="E213S0tF40oQ40"
+runs=("E212TomaVAjF40oQ40" "E212TomaVAkF40oQ40")
 
 # Time range
 year_start="1850"
 year_end="2014"
 
 # ZOS Numbers
-zos_1="-5.543E-03"
-zos_2="-3.987E-04"
+zos_1="-0.1683461"
+zos_2="4.1561201E-04"
 
 ##############################
 ### Automatic CMOR Process ###
 ##############################
 
 # Set output file
-output_file="cmor_progress.txt"
+output_file="/discover/nobackup/aherron1/CMOR3.3.2/cmor_progress.txt"
 
 # Clear progress file without removing
 true >"$output_file"
@@ -64,55 +64,62 @@ cmor_time_periods() {
     done
 }
 
-# Set run type extract script based on the prefix
-case "$run" in
-E213*) atmosphere_var="nint" ;;
-E06*) atmosphere_var="nint" ;;
-E212*) atmosphere_var="oma" ;;
-E07*) atmosphere_var="oma" ;;
-*)
-    echo "Error: Unknown prefix. No extraction script found." >>$output_file
-    exit 1
-    ;;
-esac
+# Initialize string for details of each run's CMOR process
+details=""
 
-# Check atmosphere_var and run the corresponding code
-if [ "$atmosphere_var" == "nint" ]; then
-    # NINT code
-    cmor_time_periods "$year_start" "$year_end" "$run" "nint"
-elif [ "$atmosphere_var" == "oma" ]; then
-    # OMA code
-    cmor_time_periods "$year_start" "$year_end" "$run" "tcadiOma"
-    cmor_time_periods "$year_start" "$year_end" "$run" "taijlOma"
-else
-    echo "Error: Unknown atmosphere_var. No corresponding code found." >>$output_file
-    exit 1
-fi
+# Loop through each run
+for run in "${runs[@]}"; do
 
-# Run oceanic commands
-cmor_time_periods "$year_start" "$year_end" "$run" "oijl"
+    # Set run type extract script based on the prefix
+    case "$run" in
+    E213*) atmosphere_var="nint" ;;
+    E06*) atmosphere_var="nint" ;;
+    E212*) atmosphere_var="oma" ;;
+    E07*) atmosphere_var="oma" ;;
+    *)
+        echo "Error: Unknown prefix. No extraction script found." >>$output_file
+        exit 1
+        ;;
+    esac
 
-# Calculate total time periods
-time_range=$((year_end - year_start + 1))
-total_time_periods=$((time_range * 12))
+    # Check atmosphere_var and run the corresponding code
+    if [ "$atmosphere_var" == "nint" ]; then
+        # NINT code
+        cmor_time_periods "$year_start" "$year_end" "$run" "nint"
+    elif [ "$atmosphere_var" == "oma" ]; then
+        # OMA code
+        cmor_time_periods "$year_start" "$year_end" "$run" "tcadiOma"
+        cmor_time_periods "$year_start" "$year_end" "$run" "taijlOma"
+    else
+        echo "Error: Unknown atmosphere_var. No corresponding code found." >>"$output_file"
+        exit 1
+    fi
 
-# ZOS command (should be constant / 1 line)
-command_array+=("master_cmor3.ksh $run zos $total_time_periods $year_start $year_end $year_start $zos_1 $zos_2")
+    # Run oceanic commands
+    cmor_time_periods "$year_start" "$year_end" "$run" "oijl"
 
-# Extra variables
-command_array+=("cd /discover/nobackup/aherron1/proc_cmip6")
-command_array+=("reformat_cmip6_extra.ksh $run $year_start $year_end $total_time_periods")
-command_array+=("cd /discover/nobackup/aherron1/CMOR3.3.2")
+    # Calculate total time periods
+    time_range=$((year_end - year_start + 1))
+    total_time_periods=$((time_range * 12))
+
+    # ZOS command (should be constant / 1 line)
+    command_array+=("master_cmor3.ksh $run zos $total_time_periods $year_start $year_end $year_start $zos_1 $zos_2")
+
+    # Extra variables
+    command_array+=("cd /discover/nobackup/aherron1/proc_cmip6")
+    command_array+=("reformat_cmip6_extra.ksh $run $year_start $year_end $total_time_periods")
+    command_array+=("cd /discover/nobackup/aherron1/CMOR3.3.2")
+
+done
 
 # Print all CMOR commands
-details=""
 echo -e "\nAll CMOR commands:\n" >>$output_file
 for command in "${command_array[@]}"; do
     timestamp=$(date "+%Y-%m-%d %H:%M:%S")
     echo "[$timestamp] $command" >>$output_file
     details+="$command\n"
 
-    # Commend out this line to test commands before running
+    # Comment out this line to test commands before running
     eval "$command"
 done
 
