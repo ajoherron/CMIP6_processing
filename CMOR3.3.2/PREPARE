@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Set path
+path="/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/DAMIP/NASA-GISS/GISS-E2-1-G/hist-volc/r7i1p3f1"
+
+# Clear out the prepare_output.txt file
+true >prepare_output.txt
+echo -e "\n*************************************" >>prepare_output.txt
+echo -e "PrePARE results for $path" >>prepare_output.txt
+
+# Initialize total number of errors
+total_errors=0
+
+for dir_path in "$path"/*/; do
+    # Extract the directory name from the path
+    var=$(basename "$dir_path")
+
+    echo "Processing: $var"
+    echo -e "\n---$var---" >>prepare_output.txt
+
+    # If the variable is AERmon, process sub-variables individually
+    if [ "$var" == "AERmon" ]; then
+
+        # Initialize total number of AERmon errors and files
+        total_aermon_errors=0
+        total_aermon_files=0
+
+        # Loop through each sub-variable
+        for sub_var_path in "$path/$var"/*; do
+            output=$(PrePARE --table-path /css/cmip6/CMIP6/Tables/ "$sub_var_path" | grep 'Number of')
+            errors=$(echo "$output" | sed -n '2s/[^0-9]*\([0-9]\+\).*/\1/p')
+            total_aermon_errors=$((total_aermon_errors + errors))
+            files=$(echo "$output" | sed -n '1s/[^0-9]*\([0-9]\+\).*/\1/p')
+            total_aermon_files=$((total_aermon_files + files))
+        done
+
+        # Write total number of AERmon errors to ouput file
+        echo "Number of files scanned: $total_aermon_files" >>prepare_output.txt
+        echo "Number of files with errors: $total_aermon_errors" >>prepare_output.txt
+
+    else
+        # Process the variable normally
+        output=$(PrePARE --table-path /css/cmip6/CMIP6/Tables/ "$path/$var/" | grep 'Number of')
+        echo "$output" >>prepare_output.txt
+
+        # Extract the number of files with errors and add it to the total
+        errors=$(echo "$output" | sed -n '2s/[^0-9]*\([0-9]\+\).*/\1/p')
+        total_errors=$((total_errors + errors))
+    fi
+
+done
+
+# Show results from output file
+cat prepare_output.txt
+
+# Check if total number of errors is 0
+total_errors=$((total_errors + total_aermon_errors))
+if [ $total_errors -eq 0 ]; then
+    echo -e "\n*************************************"
+    echo -e "All variables processed successfully."
+    echo -e "*************************************"
+else
+    echo -e "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+    echo -e "\nThere were errors in processing."
+    echo -e "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+fi
