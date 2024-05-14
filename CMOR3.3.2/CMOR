@@ -5,7 +5,7 @@
 ##########################
 
 # Run
-runs=("E212TomaVAjF40oQ40" "E212TomaVAkF40oQ40")
+runs=("E07TomaVArF40oQ40")
 
 # Time range
 year_start="1850"
@@ -73,23 +73,33 @@ for run in "${runs[@]}"; do
     # Set run type extract script based on the prefix
     case "$run" in
     E213*) atmosphere_var="nint" ;;
-    E06*) atmosphere_var="nint" ;;
+    E06*) atmosphere_var="nint102" ;;
     E212*) atmosphere_var="oma" ;;
-    E07*) atmosphere_var="oma" ;;
+    E07*) atmosphere_var="oma102" ;;
     *)
         echo "Error: Unknown prefix. No extraction script found." >>$output_file
         exit 1
         ;;
     esac
 
-    # Check atmosphere_var and run the corresponding code
+    # Atmospheric variables for E2.1 NINT
     if [ "$atmosphere_var" == "nint" ]; then
-        # NINT code
         cmor_time_periods "$year_start" "$year_end" "$run" "nint"
+
+    # Atmospheric variables for E2.2 NINT
+    elif [ "$atmosphere_var" == "nint102" ]; then
+        cmor_time_periods "$year_start" "$year_end" "$run" "nint102"
+
+    # Atmospheric variables for E2.1 OMA
     elif [ "$atmosphere_var" == "oma" ]; then
-        # OMA code
         cmor_time_periods "$year_start" "$year_end" "$run" "tcadiOma"
         cmor_time_periods "$year_start" "$year_end" "$run" "taijlOma"
+
+    # Atmospheric variables for E2.2 OMA
+    elif [ "$atmosphere_var" == "oma102" ]; then
+        cmor_time_periods "$year_start" "$year_end" "$run" "tcadiOma102"
+        cmor_time_periods "$year_start" "$year_end" "$run" "taijlOma102"
+
     else
         echo "Error: Unknown atmosphere_var. No corresponding code found." >>"$output_file"
         exit 1
