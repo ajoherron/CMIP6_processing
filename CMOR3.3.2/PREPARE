@@ -2,8 +2,10 @@
 
 # Set paths
 paths=(
-    "/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/DAMIP/NASA-GISS/GISS-E2-1-G/hist-volc/r10i1p3f1"
-    "/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/DAMIP/NASA-GISS/GISS-E2-1-G/hist-volc/r11i1p3f1"
+"/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/DAMIP/NASA-GISS/GISS-E2-1-G/hist-totalO3/r17i1p1f2"
+"/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/DAMIP/NASA-GISS/GISS-E2-1-G/hist-totalO3/r18i1p1f2"
+"/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/DAMIP/NASA-GISS/GISS-E2-1-G/hist-totalO3/r19i1p1f2"
+"/discover/nobackup/aherron1/CMOR3.3.2/CMIP6/DAMIP/NASA-GISS/GISS-E2-1-G/hist-totalO3/r20i1p1f2"
 )
 
 # Clear out the prepare_output.txt file
@@ -12,6 +14,8 @@ true >prepare_output.txt
 for path in "${paths[@]}"; do
     echo -e "\n*************************************" >>prepare_output.txt
     echo -e "PrePARE results for $path" >>prepare_output.txt
+    ripf=$(basename "$path")
+    echo -e "\nRIPF: $ripf"     
 
     # Initialize total number of errors
     total_errors=0
@@ -55,9 +59,6 @@ for path in "${paths[@]}"; do
         fi
 
     done
-
-    # Show results from output file
-    cat prepare_output.txt
 
     # Check if total number of errors is 0
     total_errors=$((total_errors + total_aermon_errors))
